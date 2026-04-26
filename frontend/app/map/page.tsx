@@ -5,12 +5,31 @@ import MapView from "./MapView";
 export const dynamic = "force-dynamic";
 
 interface MapPageProps {
-  searchParams: { origin?: string; destination?: string };
+  searchParams: {
+    origin?: string;
+    destination?: string;
+    originLng?: string;
+    originLat?: string;
+    destLng?: string;
+    destLat?: string;
+  };
 }
+
+const parseCoords = (
+  lng?: string,
+  lat?: string,
+): [number, number] | undefined => {
+  if (!lng || !lat) return undefined;
+  const lngN = Number(lng);
+  const latN = Number(lat);
+  return Number.isFinite(lngN) && Number.isFinite(latN) ? [lngN, latN] : undefined;
+};
 
 export default async function MapPage({ searchParams }: MapPageProps) {
   const origin = searchParams.origin?.trim();
   const destination = searchParams.destination?.trim();
+  const originCoords = parseCoords(searchParams.originLng, searchParams.originLat);
+  const destinationCoords = parseCoords(searchParams.destLng, searchParams.destLat);
 
   if (!origin || !destination) {
     return (
@@ -23,7 +42,7 @@ export default async function MapPage({ searchParams }: MapPageProps) {
 
   let data;
   try {
-    data = await fetchRoute(origin, destination);
+    data = await fetchRoute(origin, destination, originCoords, destinationCoords);
   } catch (err) {
     const detail =
       err instanceof Error ? err.message : "Something went wrong.";

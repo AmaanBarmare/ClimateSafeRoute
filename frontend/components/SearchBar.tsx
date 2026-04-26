@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@/lib/theme";
 
 // Mapbox SearchBox touches `document` on module load — must be loaded client-only.
@@ -39,11 +39,16 @@ interface SearchTheme {
   cssText?: string;
 }
 
+interface RetrievedFeature {
+  properties: { name?: string; place_formatted?: string };
+  geometry?: { coordinates?: [number, number] };
+}
+
 const MapboxSearchBox = SearchBox as unknown as React.FC<{
   accessToken: string;
   value: string;
   onChange: (value: string) => void;
-  onRetrieve: (res: { features: Array<{ properties: { name?: string; place_formatted?: string } }> }) => void;
+  onRetrieve: (res: { features: RetrievedFeature[] }) => void;
   options: typeof searchOptions;
   theme: SearchTheme;
   placeholder?: string;
@@ -58,6 +63,12 @@ export default function SearchBar() {
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Coords captured from the autocomplete pick. We compare against the label
+  // they were captured for; if the user edits the text afterwards, coords
+  // are no longer valid for that text and we fall back to backend geocoding.
+  const originPick = useRef<{ label: string; coords: [number, number] } | null>(null);
+  const destinationPick = useRef<{ label: string; coords: [number, number] } | null>(null);
 
   const searchTheme: SearchTheme = useMemo(() => {
     const isDark = theme === "dark";
@@ -93,18 +104,40 @@ export default function SearchBar() {
     }
     setError(null);
     setSubmitting(true);
+
     const params = new URLSearchParams({
       origin: origin.trim(),
       destination: destination.trim(),
     });
+
+    // Only attach coords if they match the current text — otherwise the user
+    // edited the field after picking and the coords no longer correspond.
+    if (originPick.current && originPick.current.label === origin.trim()) {
+      params.set("originLng", String(originPick.current.coords[0]));
+      params.set("originLat", String(originPick.current.coords[1]));
+    }
+    if (destinationPick.current && destinationPick.current.label === destination.trim()) {
+      params.set("destLng", String(destinationPick.current.coords[0]));
+      params.set("destLat", String(destinationPick.current.coords[1]));
+    }
+
     router.push(`/map?${params.toString()}`);
   };
 
-  const formatRetrieved = (res: { features: Array<{ properties: { name?: string; place_formatted?: string } }> }) => {
+  const handleRetrieve = (
+    res: { features: RetrievedFeature[] },
+    setText: (s: string) => void,
+    pickRef: React.MutableRefObject<{ label: string; coords: [number, number] } | null>,
+  ) => {
     const f = res.features[0];
-    if (!f) return "";
-    const parts = [f.properties.name, f.properties.place_formatted].filter(Boolean);
-    return parts.join(", ");
+    if (!f) return;
+    const label = [f.properties.name, f.properties.place_formatted].filter(Boolean).join(", ");
+    setText(label);
+    if (f.geometry?.coordinates) {
+      pickRef.current = { label, coords: f.geometry.coordinates };
+    } else {
+      pickRef.current = null;
+    }
   };
 
   const fallbackInputClass =
@@ -126,7 +159,7 @@ export default function SearchBar() {
             accessToken={MAPBOX_TOKEN}
             value={origin}
             onChange={(d) => setOrigin(d)}
-            onRetrieve={(res) => setOrigin(formatRetrieved(res))}
+            onRetrieve={(res) => handleRetrieve(res, setOrigin, originPick)}
             options={searchOptions}
             theme={searchTheme}
             placeholder="Enter starting point"
@@ -148,7 +181,7 @@ export default function SearchBar() {
             accessToken={MAPBOX_TOKEN}
             value={destination}
             onChange={(d) => setDestination(d)}
-            onRetrieve={(res) => setDestination(formatRetrieved(res))}
+            onRetrieve={(res) => handleRetrieve(res, setDestination, destinationPick)}
             options={searchOptions}
             theme={searchTheme}
             placeholder="Enter destination"

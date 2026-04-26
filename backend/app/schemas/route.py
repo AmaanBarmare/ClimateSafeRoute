@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field
 class RouteRequest(BaseModel):
     origin: str = Field(..., min_length=3, max_length=200)
     destination: str = Field(..., min_length=3, max_length=200)
+    # When the frontend resolves an address via Mapbox autocomplete, it sends
+    # the picked coordinates here so we can skip the (lossier) Nominatim round-trip.
+    origin_coords: tuple[float, float] | None = None
+    destination_coords: tuple[float, float] | None = None
 
 
 class RouteStats(BaseModel):

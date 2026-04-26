@@ -13,11 +13,13 @@ router = APIRouter()
 
 @router.post("/route", response_model=RouteResponse)
 async def get_route(request: RouteRequest) -> RouteResponse:
-    origin = await geocode(request.origin)
+    # Prefer client-supplied coords (from Mapbox autocomplete) — they're
+    # already resolved and avoid Nominatim missing niche POIs.
+    origin = request.origin_coords or await geocode(request.origin)
     if origin is None:
         raise HTTPException(status_code=422, detail="Could not resolve origin address")
 
-    destination = await geocode(request.destination)
+    destination = request.destination_coords or await geocode(request.destination)
     if destination is None:
         raise HTTPException(status_code=422, detail="Could not resolve destination address")
 
