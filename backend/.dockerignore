@@ -1,0 +1,12 @@
+# Don't ship secrets, local venv, downloaded data, caches
+.env
+.env.*
+.venv
+venv
+data/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.DS_Store
+*.log
