@@ -268,6 +268,48 @@ The weights (0.5, 0.3, 0.2) reflect the relative severity of each risk factor: h
 
 ---
 
+## Challenges Faced
+
+Notes on the real engineering problems that came up while building this — kept short for revision.
+
+### 1. Stale data sources
+**Problem:** All three NYC datasets named in the original spec (HVI by NTA, per-block tree canopy, FEMA flood zones) had been retired or renamed by the time I started building. Endpoints returned 404.
+**Fix:** Researched the NYC Open Data portal and found current replacements with HTTP 200 verification before integrating. Flood data switched from FEMA AE/VE/X zones to the **FSHRI** (Flood Susceptibility & Hazard Rank Index) on a 1–5 scale, which I rescaled to a 0–100 risk score. Canopy switched from per-block polygons to the **Street Tree Census** aggregated as trees-per-km² per ZCTA, then percentile-ranked to a 0–100 canopy proxy.
+**Takeaway:** External datasets rot. Verify endpoints before depending on them, and isolate dataset access in one ingestion script per source so swaps stay localized.
+
+### 2. OSMnx 2.x breaking changes
+**Problem:** The spec assumed OSMnx 1.9.x but pip installed 2.x. `nearest_nodes()` crashed with `KeyError: 'crs'` and an `ImportError` for scikit-learn.
+**Fix:** Explicitly set `G.graph["crs"] = "EPSG:4326"` after rebuilding the graph from PostGIS, and added `scikit-learn` to requirements.txt.
+**Takeaway:** Pin major versions of geo libraries — they're under active development and breaking changes are common.
+
+### 3. PostGIS extension not available on default Railway Postgres
+**Problem:** Railway's default Postgres template doesn't include the PostGIS extension, and the platform doesn't allow installing extensions on managed databases. `CREATE EXTENSION postgis` failed.
+**Fix:** Deployed the dedicated **PostGIS community template** instead of the default Postgres template.
+**Takeaway:** When using managed databases, check extension support before committing — you can't always `CREATE EXTENSION` your way out.
+
+### 4. `postgres://` vs `postgresql://` URL scheme
+**Problem:** Railway's PostGIS template hands out connection strings starting with `postgres://`, but SQLAlchemy 2.x only accepts `postgresql://`. The backend crashed on startup with `Could not parse SQLAlchemy URL`.
+**Fix:** Added a normalization step everywhere `DATABASE_URL` is read (6 files): `if url.startswith("postgres://"): url = url.replace("postgres://", "postgresql://", 1)`.
+**Takeaway:** Connection string formats vary across providers and library versions. Normalize at the boundary, not at the call site.
+
+### 5. Reasoning models consume the token budget silently
+**Problem:** Switched the LLM to OpenAI `gpt-5-mini` and started getting empty responses. It's a reasoning model — it spends tokens on hidden chain-of-thought before producing visible output. With `max_tokens=200`, all 200 went to invisible reasoning and zero to the actual reply.
+**Fix:** Set `reasoning_effort="minimal"` and bumped `max_completion_tokens` to 600. Added a deterministic template fallback for the rare case where the LLM still returns empty.
+**Takeaway:** Reasoning models have different token economics than chat models. When debugging short outputs, inspect `usage.completion_tokens_details` to see how many tokens went to reasoning vs. visible output.
+
+### 6. Same-ZCTA routes return identical paths
+**Problem:** For short trips that stay within one ZCTA (NYC's modified ZIP code area), the climate multiplier is constant across every candidate edge, so Dijkstra returns the same path for both `weight='length'` and `weight='climate_score'`. The shortest and climate-smart routes look identical to the user.
+**Why it happens:** The climate score is a per-ZCTA polygon score joined to street edges by spatial intersection. Inside a single polygon, every edge gets the same multiplier — so path ordering depends only on length.
+**Fix:** Documented as a known resolution limit, and verified divergence works on longer cross-ZCTA trips (e.g., Battery Park → Dyckman, Grand Central → High Line).
+**Takeaway:** Spatial joins inherit the resolution of the coarser dataset. Routing quality is bounded by climate-data granularity — moving to per-block-group data would fix it.
+
+### 7. Memory cost of the in-memory graph (Brooklyn expansion)
+**Problem:** Adding Brooklyn tripled the graph from ~115k to ~332k edges. FastAPI loads the whole graph at startup via `@lru_cache`, so that memory cost is paid 24/7, not per request — which directly affects hosting cost on a memory-priced platform like Railway.
+**Fix:** Re-precomputed the graph against the production database, redeployed the backend so it reloaded the larger graph, and verified RAM stayed within limits.
+**Takeaway:** Hot-loaded data structures trade RAM for latency. On per-resource-priced hosts, that floor cost should be in the design conversation early — not discovered after the deploy.
+
+---
+
 ## Contributing
 
 Pull requests are welcome. For significant changes, open an issue first to discuss what you'd like to change.
