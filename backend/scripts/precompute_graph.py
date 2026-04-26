@@ -23,8 +23,7 @@ if _DB_URL.startswith("postgres://"):
     _DB_URL = _DB_URL.replace("postgres://", "postgresql://", 1)
 engine = create_engine(_DB_URL)
 
-# Manhattan only for first build; add Brooklyn after end-to-end works.
-PLACE_QUERY = ["Manhattan, New York, USA"]
+PLACE_QUERY = ["Manhattan, New York, USA", "Brooklyn, New York, USA"]
 
 DEFAULT_FLOOD_SCORE = 20.0  # FSHRI=1 equivalent (low risk) for edges outside any tract
 
