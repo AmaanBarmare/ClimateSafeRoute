@@ -9,6 +9,9 @@ frontend/.env.local
 backend/data/*
 !backend/data/.gitkeep
 
+# OSMnx response cache — large, regenerated on demand
+backend/cache/
+
 # python
 __pycache__/
 *.pyc
