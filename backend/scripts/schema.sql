@@ -1,6 +1,7 @@
 -- ClimateSafe Route — PostGIS schema
 -- Idempotent: safe to re-run.
 -- Apply locally: docker exec -i climatesafe-db psql -U postgres -d climatesafe < backend/scripts/schema.sql
+-- (Local Postgres host port is 5433 to avoid conflict with any host Postgres on 5432.)
 -- Apply on Railway: paste into the Postgres service shell.
 
 CREATE EXTENSION IF NOT EXISTS postgis;
