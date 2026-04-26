@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useTheme } from "@/lib/theme";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
-// Lower-Manhattan-ish framing — looks dramatic at this pitch.
 const START = {
   center: [-73.992, 40.731] as [number, number],
   zoom: 13.4,
@@ -14,16 +14,55 @@ const START = {
   bearing: -18,
 };
 
+interface Palette {
+  style: string;
+  buildingLow: string;
+  buildingMid: string;
+  buildingHigh: string;
+  buildingTop: string;
+  routeColor: string;
+  routeGlow: string;
+  heatColor: string;
+  heatOpacity: number;
+}
+
+const PALETTES: Record<"dark" | "light", Palette> = {
+  dark: {
+    style: "mapbox://styles/mapbox/dark-v11",
+    buildingLow: "#0f1626",
+    buildingMid: "#172033",
+    buildingHigh: "#1f2a44",
+    buildingTop: "#2a3a5c",
+    routeColor: "#34d399",
+    routeGlow: "#34d399",
+    heatColor: "#f97316",
+    heatOpacity: 0.22,
+  },
+  light: {
+    style: "mapbox://styles/mapbox/light-v11",
+    buildingLow: "#e6ecf5",
+    buildingMid: "#d4dcea",
+    buildingHigh: "#c0cadf",
+    buildingTop: "#a8b5d0",
+    routeColor: "#059669",
+    routeGlow: "#10b981",
+    heatColor: "#ea580c",
+    heatOpacity: 0.18,
+  },
+};
+
 export default function HeroMap() {
   const ref = useRef<HTMLDivElement | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!ref.current || !MAPBOX_TOKEN) return;
     mapboxgl.accessToken = MAPBOX_TOKEN;
+    const palette = PALETTES[theme];
 
     const map = new mapboxgl.Map({
       container: ref.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: palette.style,
       ...START,
       interactive: false,
       attributionControl: false,
@@ -35,10 +74,11 @@ export default function HeroMap() {
     let cancelled = false;
 
     map.on("load", () => {
-      // 3D buildings — gives the city real depth in the hero.
       const layers = map.getStyle()?.layers ?? [];
       const labelLayer = layers.find(
-        (l) => l.type === "symbol" && (l.layout as { "text-field"?: unknown } | undefined)?.["text-field"],
+        (l) =>
+          l.type === "symbol" &&
+          (l.layout as { "text-field"?: unknown } | undefined)?.["text-field"],
       );
       if (!map.getLayer("3d-buildings")) {
         map.addLayer(
@@ -54,29 +94,28 @@ export default function HeroMap() {
                 "interpolate",
                 ["linear"],
                 ["get", "height"],
-                0, "#0f1626",
-                40, "#172033",
-                120, "#1f2a44",
-                300, "#2a3a5c",
+                0, palette.buildingLow,
+                40, palette.buildingMid,
+                120, palette.buildingHigh,
+                300, palette.buildingTop,
               ],
               "fill-extrusion-height": ["get", "height"],
               "fill-extrusion-base": ["get", "min_height"],
-              "fill-extrusion-opacity": 0.85,
+              "fill-extrusion-opacity": theme === "dark" ? 0.85 : 0.9,
             },
           },
           labelLayer?.id,
         );
       }
 
-      // Heat-island glow patches — animated radial gradient via CircleLayer pulses.
       const heatPoints: GeoJSON.FeatureCollection = {
         type: "FeatureCollection",
         features: [
-          [-73.9881, 40.7421], // Midtown
-          [-73.9967, 40.7307], // East Village edge
-          [-73.9794, 40.7484], // Bryant Park
-          [-74.0071, 40.7265], // Tribeca / Hudson edge
-          [-73.9911, 40.7516], // Times Sq
+          [-73.9881, 40.7421],
+          [-73.9967, 40.7307],
+          [-73.9794, 40.7484],
+          [-74.0071, 40.7265],
+          [-73.9911, 40.7516],
         ].map(([lng, lat], i) => ({
           type: "Feature",
           properties: { i },
@@ -90,13 +129,12 @@ export default function HeroMap() {
         source: "heat-points",
         paint: {
           "circle-radius": 70,
-          "circle-color": "#f97316",
+          "circle-color": palette.heatColor,
           "circle-blur": 1,
-          "circle-opacity": 0.22,
+          "circle-opacity": palette.heatOpacity,
         },
       });
 
-      // Climate-smart route ribbon — a curated polyline through Manhattan
       const route: GeoJSON.Feature<GeoJSON.LineString> = {
         type: "Feature",
         properties: {},
@@ -121,7 +159,7 @@ export default function HeroMap() {
         type: "line",
         source: "hero-route",
         paint: {
-          "line-color": "#34d399",
+          "line-color": palette.routeGlow,
           "line-width": 10,
           "line-opacity": 0.25,
           "line-blur": 6,
@@ -132,12 +170,11 @@ export default function HeroMap() {
         type: "line",
         source: "hero-route",
         paint: {
-          "line-color": "#34d399",
+          "line-color": palette.routeColor,
           "line-width": 3,
         },
       });
 
-      // Slow cinematic camera orbit
       const startTime = performance.now();
       const orbit = (now: number) => {
         if (cancelled) return;
@@ -158,7 +195,7 @@ export default function HeroMap() {
       cancelAnimationFrame(raf);
       map.remove();
     };
-  }, []);
+  }, [theme]);
 
   return (
     <div

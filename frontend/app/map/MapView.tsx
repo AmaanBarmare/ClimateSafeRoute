@@ -9,7 +9,9 @@ import type { RouteResponse } from "@/lib/types";
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 h-full bg-slate-900 animate-pulse flex items-center justify-center text-slate-500 text-sm">
+    <div className="flex-1 h-full animate-pulse flex items-center justify-center text-sm
+                    bg-slate-100 text-slate-500
+                    dark:bg-slate-900 dark:text-slate-500">
       Loading map…
     </div>
   ),

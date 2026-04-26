@@ -13,7 +13,11 @@ export default function ToggleSwitch({
   label,
   color = "slate",
 }: ToggleSwitchProps) {
-  const trackOn = color === "green" ? "bg-green-500" : "bg-slate-400";
+  const trackOn =
+    color === "green"
+      ? "bg-emerald-500 dark:bg-emerald-400"
+      : "bg-slate-500 dark:bg-slate-400";
+  const trackOff = "bg-slate-300 dark:bg-slate-700";
   return (
     <button
       type="button"
@@ -24,7 +28,7 @@ export default function ToggleSwitch({
     >
       <span
         className={`relative w-10 h-6 rounded-full transition-colors ${
-          checked ? trackOn : "bg-slate-700"
+          checked ? trackOn : trackOff
         }`}
       >
         <span
@@ -33,7 +37,7 @@ export default function ToggleSwitch({
           }`}
         />
       </span>
-      <span className="text-sm text-slate-200 group-hover:text-slate-50 transition-colors">
+      <span className="text-sm transition-colors text-slate-700 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-slate-50">
         {label}
       </span>
     </button>

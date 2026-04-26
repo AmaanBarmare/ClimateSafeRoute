@@ -36,11 +36,13 @@ export default async function MapPage({ searchParams }: MapPageProps) {
 function ErrorScreen({ title, message }: { title: string; message: string }) {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-4">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="text-slate-400 max-w-md">{message}</p>
+      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{title}</h1>
+      <p className="max-w-md text-slate-600 dark:text-slate-400">{message}</p>
       <Link
-        href="/"
-        className="mt-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors"
+        href="/app"
+        className="mt-2 px-4 py-2 rounded-lg font-medium transition-colors
+                   bg-emerald-600 hover:bg-emerald-700 text-white
+                   dark:bg-emerald-400 dark:hover:bg-emerald-300 dark:text-slate-950"
       >
         Try again
       </Link>

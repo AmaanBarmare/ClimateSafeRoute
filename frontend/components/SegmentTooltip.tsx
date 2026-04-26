@@ -10,14 +10,14 @@ interface SegmentTooltipProps {
 }
 
 function heatColor(v: number) {
-  if (v <= 40) return "text-green-400";
-  if (v <= 70) return "text-orange-400";
-  return "text-red-400";
+  if (v <= 40) return "text-emerald-600 dark:text-emerald-400";
+  if (v <= 70) return "text-orange-600 dark:text-orange-400";
+  return "text-rose-600 dark:text-rose-400";
 }
 function canopyColor(v: number) {
-  if (v >= 30) return "text-green-400";
-  if (v >= 15) return "text-orange-400";
-  return "text-red-400";
+  if (v >= 30) return "text-emerald-600 dark:text-emerald-400";
+  if (v >= 15) return "text-orange-600 dark:text-orange-400";
+  return "text-rose-600 dark:text-rose-400";
 }
 
 export default function SegmentTooltip({
@@ -36,22 +36,24 @@ export default function SegmentTooltip({
         opacity: visible ? 1 : 0,
         pointerEvents: "none",
       }}
-      className="fixed bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl text-sm z-50 transition-opacity"
+      className="fixed rounded-lg p-3 shadow-xl text-sm z-50 transition-opacity
+                 bg-white border border-slate-200 text-slate-900
+                 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-50"
     >
       <div className="flex justify-between gap-6">
-        <span className="text-slate-400">Heat</span>
+        <span className="text-slate-500 dark:text-slate-400">Heat</span>
         <span className={`font-mono ${heatColor(heatScore)}`}>
           {heatScore.toFixed(0)}/100
         </span>
       </div>
       <div className="flex justify-between gap-6">
-        <span className="text-slate-400">Flood</span>
+        <span className="text-slate-500 dark:text-slate-400">Flood</span>
         <span className={`font-mono ${heatColor(floodScore)}`}>
           {floodScore.toFixed(0)}/100
         </span>
       </div>
       <div className="flex justify-between gap-6">
-        <span className="text-slate-400">Canopy</span>
+        <span className="text-slate-500 dark:text-slate-400">Canopy</span>
         <span className={`font-mono ${canopyColor(canopyPct)}`}>
           {canopyPct.toFixed(0)}%
         </span>

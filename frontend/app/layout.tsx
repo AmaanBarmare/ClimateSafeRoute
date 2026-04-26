@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider, NO_FLASH_SCRIPT } from "@/lib/theme";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
@@ -23,9 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${jetbrains.variable} ${fraunces.variable}`}>
-      <body className="bg-slate-950 text-slate-50 font-sans antialiased min-h-screen">
-        {children}
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${jetbrains.variable} ${fraunces.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+      </head>
+      <body className="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50 font-sans antialiased min-h-screen transition-colors duration-300">
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

@@ -12,6 +12,7 @@ import Map, {
 } from "react-map-gl";
 import type { RouteStats } from "@/lib/types";
 import SegmentTooltip from "./SegmentTooltip";
+import { useTheme } from "@/lib/theme";
 
 interface RouteMapProps {
   routeShortest: RouteStats;
@@ -56,6 +57,7 @@ export default function RouteMap({
   originCoords,
   destinationCoords,
 }: RouteMapProps) {
+  const { theme } = useTheme();
   const mapRef = useRef<MapRef | null>(null);
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -105,18 +107,27 @@ export default function RouteMap({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900 text-slate-400 text-sm">
+      <div className="flex-1 flex items-center justify-center text-sm bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
         Missing NEXT_PUBLIC_MAPBOX_TOKEN.
       </div>
     );
   }
 
+  const mapStyle =
+    theme === "dark"
+      ? "mapbox://styles/mapbox/dark-v11"
+      : "mapbox://styles/mapbox/light-v11";
+  const climateColor = theme === "dark" ? "#34d399" : "#059669";
+  const shortestColor = theme === "dark" ? "#94a3b8" : "#64748b";
+
   return (
     <div className="relative flex-1 h-full">
       <Map
+        // remount when theme changes — cheap and avoids hand-syncing styles
+        key={theme}
         ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/dark-v11"
+        mapStyle={mapStyle}
         initialViewState={{
           longitude: -73.985,
           latitude: 40.758,
@@ -133,7 +144,7 @@ export default function RouteMap({
               id={SHORTEST_LAYER_ID}
               type="line"
               paint={{
-                "line-color": "#94a3b8",
+                "line-color": shortestColor,
                 "line-width": 4,
                 "line-opacity": 0.85,
               }}
@@ -148,7 +159,7 @@ export default function RouteMap({
               id={CLIMATE_LAYER_ID}
               type="line"
               paint={{
-                "line-color": "#22c55e",
+                "line-color": climateColor,
                 "line-width": 4,
                 "line-opacity": 0.95,
                 "line-dasharray": [2, 1],
@@ -159,13 +170,13 @@ export default function RouteMap({
         ) : null}
 
         <Marker longitude={originCoords[0]} latitude={originCoords[1]}>
-          <div className="w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white shadow" />
+          <div className="w-3.5 h-3.5 rounded-full border-2 border-white shadow bg-emerald-500 dark:bg-emerald-400" />
         </Marker>
         <Marker
           longitude={destinationCoords[0]}
           latitude={destinationCoords[1]}
         >
-          <div className="w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-white shadow" />
+          <div className="w-3.5 h-3.5 rounded-full border-2 border-white shadow bg-rose-500" />
         </Marker>
       </Map>
 

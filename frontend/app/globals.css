@@ -2,11 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────── Design tokens ───────────
+   Light is the default; .dark overrides.
+   These power any utilities that read CSS vars.
+*/
+:root {
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --surface-elev: #ffffff;
+  --ink: #0b1220;
+  --ink-muted: #475569;
+  --ink-subtle: #64748b;
+  --line: #e2e8f0;
+  --line-soft: #eef2f7;
+  --accent: #059669;     /* emerald-600 — readable on white */
+  --accent-soft: #10b981;
+  --shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.18);
+}
+
+html.dark {
+  --bg: #060a16;
+  --surface: #0b1326;
+  --surface-elev: #0f1a33;
+  --ink: #f8fafc;
+  --ink-muted: #cbd5e1;
+  --ink-subtle: #94a3b8;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-soft: rgba(255, 255, 255, 0.05);
+  --accent: #34d399;     /* emerald-400 — pops on dark */
+  --accent-soft: #10b981;
+  --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
 html,
 body {
   height: 100%;
-  background-color: #060a16;
-  color: #f8fafc;
+  background-color: var(--bg);
+  color: var(--ink);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Mapbox GL canvas should fill its container */
@@ -15,25 +48,51 @@ body {
   height: 100%;
 }
 
-/* Hide Mapbox attribution clutter on hero canvases (still respect terms by linking in footer) */
+/* Hide Mapbox attribution clutter on hero canvases (still respect terms in footer) */
 .hero-map .mapboxgl-ctrl-bottom-left,
 .hero-map .mapboxgl-ctrl-bottom-right {
   display: none;
 }
 
-/* Subtle film grain over hero — adds organic texture */
+/* ─────────── Mapbox SearchBox text-color fix ───────────
+   The SDK's typed input occasionally inherits the page color,
+   leaving the text invisible on a dark field. Force it both ways.
+*/
+mapbox-search-box,
+mapbox-search-box input,
+.mbx-search-box input,
+input[type="search"].mapbox-search-input {
+  color: var(--ink) !important;
+  caret-color: var(--ink) !important;
+}
+mapbox-search-box input::placeholder {
+  color: var(--ink-subtle) !important;
+}
+
+/* ─────────── Film grain — only meaningful on dark hero ─────────── */
 .grain::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.06;
+  opacity: 0;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+  transition: opacity 0.3s ease;
+}
+html.dark .grain::after {
+  opacity: 0.06;
 }
 
-/* Iso-line topographic texture for backgrounds */
+/* ─────────── Topographic iso-line texture ─────────── */
 .topo-lines {
+  background-image:
+    radial-gradient(ellipse 70% 50% at 30% 20%, rgba(5, 150, 105, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 70%, rgba(37, 99, 235, 0.06), transparent 60%),
+    repeating-radial-gradient(circle at 30% 30%, rgba(15, 23, 42, 0.04) 0 1px, transparent 1px 22px),
+    repeating-radial-gradient(circle at 75% 65%, rgba(15, 23, 42, 0.03) 0 1px, transparent 1px 28px);
+}
+html.dark .topo-lines {
   background-image:
     radial-gradient(ellipse 70% 50% at 30% 20%, rgba(16, 185, 129, 0.08), transparent 60%),
     radial-gradient(ellipse 60% 40% at 80% 70%, rgba(59, 130, 246, 0.07), transparent 60%),

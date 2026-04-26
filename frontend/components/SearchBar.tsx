@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTheme } from "@/lib/theme";
 
 // Mapbox SearchBox touches `document` on module load — must be loaded client-only.
 const SearchBox = dynamic(
@@ -22,43 +23,67 @@ const searchOptions = {
   limit: 6,
 };
 
-const searchTheme = {
-  variables: {
-    colorBackground: "#0f172a",
-    colorBackgroundHover: "#1e293b",
-    colorBackgroundActive: "#1e293b",
-    colorText: "#f8fafc",
-    colorPlaceholder: "#64748b",
-    colorPrimary: "#3b82f6",
-    border: "1px solid #334155",
-    borderRadius: "0.5rem",
-    boxShadow: "none",
-    fontFamily: "inherit",
-    unit: "16px",
-    padding: "0.75rem 1rem",
-  },
-};
+// Force the typed-input color via cssText. The SearchBox renders its own DOM
+// where the input would otherwise inherit ambient colors and become invisible
+// against a dark field on production builds.
+const SHARED_INPUT_CSS = `
+  input, input[type="text"], input[type="search"] {
+    color: var(--mbx-text) !important;
+    caret-color: var(--mbx-text) !important;
+  }
+  input::placeholder { color: var(--mbx-placeholder) !important; }
+`;
 
-// SearchBox's exported types are inconsistent across versions; cast to any to avoid JSX/intrinsic noise.
+interface SearchTheme {
+  variables: Record<string, string>;
+  cssText?: string;
+}
+
 const MapboxSearchBox = SearchBox as unknown as React.FC<{
   accessToken: string;
   value: string;
   onChange: (value: string) => void;
   onRetrieve: (res: { features: Array<{ properties: { name?: string; place_formatted?: string } }> }) => void;
   options: typeof searchOptions;
-  theme: typeof searchTheme;
+  theme: SearchTheme;
   placeholder?: string;
 }>;
 
 export default function SearchBar() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // SearchBox internals call `document` on import; render after mount only.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const searchTheme: SearchTheme = useMemo(() => {
+    const isDark = theme === "dark";
+    return {
+      variables: {
+        colorBackground: isDark ? "#0b1326" : "#ffffff",
+        colorBackgroundHover: isDark ? "#162038" : "#f1f5f9",
+        colorBackgroundActive: isDark ? "#162038" : "#e2e8f0",
+        colorText: isDark ? "#f8fafc" : "#0f172a",
+        colorPlaceholder: isDark ? "#64748b" : "#94a3b8",
+        colorPrimary: isDark ? "#34d399" : "#059669",
+        border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid #e2e8f0",
+        borderRadius: "0.75rem",
+        boxShadow: isDark
+          ? "0 1px 0 rgba(255,255,255,0.04) inset"
+          : "0 1px 2px rgba(15,23,42,0.04)",
+        fontFamily: "inherit",
+        unit: "16px",
+        padding: "0.875rem 1rem",
+      },
+      cssText: `
+        :host { --mbx-text: ${isDark ? "#f8fafc" : "#0f172a"}; --mbx-placeholder: ${isDark ? "#64748b" : "#94a3b8"}; }
+        ${SHARED_INPUT_CSS}
+      `,
+    };
+  }, [theme]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,10 +107,17 @@ export default function SearchBar() {
     return parts.join(", ");
   };
 
+  const fallbackInputClass =
+    "w-full rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 " +
+    "bg-white border border-slate-200 text-slate-900 placeholder-slate-400 " +
+    "dark:bg-slate-900 dark:border-white/10 dark:text-slate-50 dark:placeholder-slate-500";
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-800 rounded-xl p-4 flex flex-col gap-3 w-full max-w-md border border-slate-700"
+      className="rounded-2xl p-5 flex flex-col gap-3 w-full max-w-md
+                 bg-white border border-slate-200 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18)]
+                 dark:bg-slate-900/70 dark:backdrop-blur-xl dark:border-white/10 dark:shadow-[0_10px_60px_-20px_rgba(0,0,0,0.8)]"
     >
       <label>
         <span className="sr-only">From</span>
@@ -105,7 +137,7 @@ export default function SearchBar() {
             value={origin}
             onChange={(e) => setOrigin(e.target.value)}
             placeholder="Enter starting point"
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fallbackInputClass}
           />
         )}
       </label>
@@ -127,19 +159,21 @@ export default function SearchBar() {
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
             placeholder="Enter destination"
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-slate-50 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={fallbackInputClass}
           />
         )}
       </label>
       {error ? (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-rose-600 dark:text-rose-400" role="alert">
           {error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={submitting}
-        className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-800 disabled:cursor-wait text-white font-semibold rounded-lg py-3 transition-colors"
+        className="rounded-xl py-3.5 font-semibold text-base transition-colors
+                   bg-emerald-600 hover:bg-emerald-700 text-white disabled:bg-emerald-300 disabled:cursor-wait
+                   dark:bg-emerald-400 dark:hover:bg-emerald-300 dark:text-slate-950 dark:disabled:bg-emerald-900 dark:disabled:text-emerald-200/40"
       >
         {submitting ? "Computing routes…" : "Find safe route"}
       </button>
