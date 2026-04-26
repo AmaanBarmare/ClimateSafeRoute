@@ -1,0 +1,46 @@
+# secrets — never commit
+backend/.env
+frontend/.env.local
+.env
+.env.local
+.env.*.local
+
+# raw climate data — downloaded manually, large files
+backend/data/*
+!backend/data/.gitkeep
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# node / next
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# build artifacts
+dist/
+build/
+
+# os
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
