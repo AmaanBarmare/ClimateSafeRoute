@@ -15,7 +15,10 @@ SCHEMA_PATH = ROOT / "scripts" / "schema.sql"
 
 
 def main() -> None:
-    engine = create_engine(os.environ["DATABASE_URL"])
+    db_url = os.environ["DATABASE_URL"]
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(db_url)
     sql = SCHEMA_PATH.read_text()
     print(f"Applying schema from {SCHEMA_PATH}")
     with engine.begin() as conn:

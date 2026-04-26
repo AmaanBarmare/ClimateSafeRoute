@@ -16,7 +16,10 @@ from sqlalchemy import create_engine, text
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
-engine = create_engine(os.environ["DATABASE_URL"])
+_DB_URL = os.environ["DATABASE_URL"]
+if _DB_URL.startswith("postgres://"):
+    _DB_URL = _DB_URL.replace("postgres://", "postgresql://", 1)
+engine = create_engine(_DB_URL)
 
 
 def main() -> None:
